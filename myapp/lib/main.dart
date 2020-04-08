@@ -30,17 +30,13 @@ class _MyAppState extends State<MyApp> {
   Position _position;
   List<Placemark> placemark;
 
-  void getLocation() async {
-    positionStream = Geolocator()
-        .getPositionStream(locationOptions)
-        .listen((Position position) {
-      print(position == null
-          ? 'Unknown'
-          : position.latitude.toString() +
-              ', ' +
-              position.longitude.toString());
-      _position = position;
-    });
+  void getCity() async {
+    Position _position = await Geolocator()
+        .getCurrentPosition(desiredAccuracy: LocationAccuracy.high);
+    placemark = await Geolocator()
+        .placemarkFromCoordinates(_position.latitude, _position.longitude);
+    print(placemark[0].locality);
+    setState(() {});
   }
 
   Widget _buildUserView() {
@@ -102,9 +98,7 @@ class _MyAppState extends State<MyApp> {
                       'type': 'downvote'
                     });
                   });
-                  setState(() {
-                    
-                  });
+                  setState(() {});
                 },
               ),
               Text(totalVotes.toString()),
@@ -154,13 +148,13 @@ class _MyAppState extends State<MyApp> {
                 context,
                 MaterialPageRoute(
                     builder: (context) => PostView(
-                        post: Post(
+                            post: Post(
                           userDocs[index].data['title'],
-                            userDocs[index].data['body'],
-                            userDocs[index].documentID,
-                            votes[userDocs[index].documentID],
-                            timeago.format(timePosted),
-                            ))));
+                          userDocs[index].data['body'],
+                          userDocs[index].documentID,
+                          votes[userDocs[index].documentID],
+                          timeago.format(timePosted),
+                        ))));
           },
         ));
       },
@@ -197,7 +191,7 @@ class _MyAppState extends State<MyApp> {
           .where('type', isEqualTo: 'upvote')
           .getDocuments()
           .then((QuerySnapshot snapshot) {
-            upvotes = snapshot.documents.length;
+        upvotes = snapshot.documents.length;
         // print(votes[item.documentID]);
       });
       await Firestore.instance
@@ -206,13 +200,14 @@ class _MyAppState extends State<MyApp> {
           .where('type', isEqualTo: 'downvote')
           .getDocuments()
           .then((QuerySnapshot snapshot) {
-            downvotes = snapshot.documents.length;
+        downvotes = snapshot.documents.length;
         // print(votes[item.documentID]);
       });
       votes[item.documentID] = upvotes - downvotes;
     }
     setState(() {});
   }
+
   getDeviceInfo() async {
     deviceInfo = DeviceInfoPlugin();
     androidInfo = await deviceInfo.androidInfo;
@@ -220,10 +215,17 @@ class _MyAppState extends State<MyApp> {
 
   @override
   initState() {
-    super.initState();
-    getLocation();
+    positionStream = Geolocator()
+        .getPositionStream(locationOptions)
+        .listen((Position position) {
+      _position = position;
+      getCity();
+      setState(() {});
+    });
     getPosts();
     getDeviceInfo();
+    getCity();
+    super.initState();
   }
 
   @override
@@ -231,12 +233,16 @@ class _MyAppState extends State<MyApp> {
     return MaterialApp(
         home: Scaffold(
             appBar: AppBar(
+              centerTitle: true,
+              title:
+                  Text(placemark == null ? 'Unknown' : placemark[0].locality),
               actions: <Widget>[
                 IconButton(
                   icon: Icon(Icons.refresh),
                   color: Colors.white,
                   onPressed: () {
                     getPosts();
+                    getCity();
                     setState(() {});
                   },
                 ),
