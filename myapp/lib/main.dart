@@ -23,12 +23,8 @@ class _MyAppState extends State<MyApp> {
   DeviceInfoPlugin deviceInfo;
   AndroidDeviceInfo androidInfo;
   StreamSubscription<Position> positionStream;
-  String body = "";
-  String name;
-  String email;
   List<DocumentSnapshot> userDocs;
   Map<String, int> votes = new Map();
-  final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
   var locationOptions =
       LocationOptions(accuracy: LocationAccuracy.high, distanceFilter: 10);
   Position _position;

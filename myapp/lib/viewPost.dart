@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'post.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:timeago/timeago.dart' as timeago;
+import 'package:device_info/device_info.dart';
 
 class PostView extends StatefulWidget {
   final Post post;
@@ -11,34 +12,37 @@ class PostView extends StatefulWidget {
 }
 
 class _PostViewState extends State<PostView> {
+  DeviceInfoPlugin deviceInfo;
+  AndroidDeviceInfo androidInfo;
   String text;
   int numReplies = 0;
   List<DocumentSnapshot> replies;
   final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
 
+  getDeviceInfo() async {
+    deviceInfo = DeviceInfoPlugin();
+    androidInfo = await deviceInfo.androidInfo;
+  }
 
-  Widget _buildReplyView(){
+  Widget _buildReplyView() {
     if (replies == null) {
       return Center(
         child: Text('Loading Replies'),
       );
     }
     return ListView.builder(
-      itemCount: replies.length,
-      itemBuilder: (BuildContext context, int index) {
-        final timePosted = replies[index].data['date'].toDate();
-        
-        return Card(child: ListTile(
-          leading: CircleAvatar(),
-          title: Text(replies[index].data['text']),
-          subtitle: Row(children: <Widget>[
-            Text(timeago.format(timePosted))
-          ]),
-        ));
-      }
-    );
-  }
+        itemCount: replies.length,
+        itemBuilder: (BuildContext context, int index) {
+          final timePosted = replies[index].data['date'].toDate();
 
+          return Card(
+              child: ListTile(
+            leading: CircleAvatar(),
+            title: Text(replies[index].data['text']),
+            subtitle: Row(children: <Widget>[Text(timeago.format(timePosted))]),
+          ));
+        });
+  }
 
   getReplies() async {
     await Firestore.instance
@@ -50,11 +54,10 @@ class _PostViewState extends State<PostView> {
         .then((QuerySnapshot snapshot) {
       replies = snapshot.documents.toList();
     });
-    setState(() {
-      
-    });
-    print(replies.length);
+    numReplies = replies.length;
+    setState(() {});
   }
+
   Widget _buildTextField() {
     return TextFormField(
       decoration: InputDecoration(labelText: 'Reply'),
@@ -102,6 +105,7 @@ class _PostViewState extends State<PostView> {
   @override
   void initState() {
     getReplies();
+    getDeviceInfo();
     super.initState();
   }
 
@@ -122,13 +126,55 @@ class _PostViewState extends State<PostView> {
                 IconButton(
                   icon: Icon(Icons.keyboard_arrow_down),
                   iconSize: 30,
-                  onPressed: () {},
+                  onPressed: () {
+                    Firestore.instance
+                      .collection('votes')
+                      .where('deviceId', isEqualTo: androidInfo.androidId)
+                      .where('postId', isEqualTo: widget.post.ID)
+                      .getDocuments()
+                      .then((QuerySnapshot snapshot) {
+                    if (snapshot.documents.length > 0) {
+                      for (var doc in snapshot.documents) {
+                        Firestore.instance
+                            .collection('votes')
+                            .document(doc.documentID)
+                            .delete();
+                      }
+                    }
+                    Firestore.instance.collection('votes').add({
+                      'postId': widget.post.ID,
+                      'deviceId': androidInfo.androidId,
+                      'type': 'downvote'
+                    });
+                  });
+                  },
                 ),
                 Text(widget.post.votes.toString()),
                 IconButton(
                   icon: Icon(Icons.keyboard_arrow_up),
                   iconSize: 30,
-                  onPressed: () {},
+                  onPressed: () {
+                    Firestore.instance
+                      .collection('votes')
+                      .where('deviceId', isEqualTo: androidInfo.androidId)
+                      .where('postId', isEqualTo: widget.post.ID)
+                      .getDocuments()
+                      .then((QuerySnapshot snapshot) {
+                    if (snapshot.documents.length > 0) {
+                      for (var doc in snapshot.documents) {
+                        Firestore.instance
+                            .collection('votes')
+                            .document(doc.documentID)
+                            .delete();
+                      }
+                    }
+                    Firestore.instance.collection('votes').add({
+                      'postId': widget.post.ID,
+                      'deviceId': androidInfo.androidId,
+                      'type': 'upvote'
+                    });
+                  });
+                  },
                 ),
                 Text(numReplies.toString() + ' Replies'),
                 Text(widget.post.timestamp),
