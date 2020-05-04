@@ -4,5 +4,7 @@ class Post {
   final String ID;
   final int votes;
   final String timestamp;
-  Post(this.title, this.body, this.ID, this.votes, this.timestamp);
+  final String user;
+  final int numReplies;
+  Post(this.title, this.body, this.ID, this.votes, this.timestamp, this.user, this.numReplies);
 }

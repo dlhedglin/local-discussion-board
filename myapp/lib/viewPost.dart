@@ -3,6 +3,8 @@ import 'post.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:timeago/timeago.dart' as timeago;
 import 'package:device_info/device_info.dart';
+import 'customTile.dart';
+import 'loading.dart';
 
 class PostView extends StatefulWidget {
   final Post post;
@@ -18,6 +20,21 @@ class _PostViewState extends State<PostView> {
   int numReplies = 0;
   List<DocumentSnapshot> replies;
   final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
+  int score;
+
+  getPostInfo() async {
+    await Firestore.instance
+        .collection('posts')
+        .document(widget.post.ID)
+        .get()
+        .then(
+          (DocumentSnapshot snapshot) {},
+        );
+  }
+
+  getScore() {
+    score = widget.post.votes;
+  }
 
   getDeviceInfo() async {
     deviceInfo = DeviceInfoPlugin();
@@ -27,18 +44,16 @@ class _PostViewState extends State<PostView> {
   Widget _buildReplyView() {
     if (replies == null) {
       return Center(
-        child: Text('Loading Replies'),
+        child: Loading(),
       );
     }
     return ListView.builder(
         itemCount: replies.length,
         itemBuilder: (BuildContext context, int index) {
           final timePosted = replies[index].data['date'].toDate();
-
           return Card(
               child: ListTile(
-            leading: CircleAvatar(),
-            title: Text(replies[index].data['text']),
+            title: Text(replies[index].data['text'] == null ? "" : replies[index].data['text']),
             subtitle: Row(children: <Widget>[Text(timeago.format(timePosted))]),
           ));
         });
@@ -60,7 +75,17 @@ class _PostViewState extends State<PostView> {
 
   Widget _buildTextField() {
     return TextFormField(
-      decoration: InputDecoration(labelText: 'Reply'),
+      decoration: InputDecoration(
+        hintText: "Reply",
+        fillColor: Colors.white,
+        filled: true,
+        enabledBorder: OutlineInputBorder(
+            borderSide: BorderSide(color: Colors.white, width: 2.0),
+            borderRadius: BorderRadius.circular(10)),
+        focusedBorder: OutlineInputBorder(
+            borderSide: BorderSide(color: Colors.pink, width: 2.0),
+            borderRadius: BorderRadius.circular(10)),
+      ),
       validator: (String value) {
         if (value.isEmpty) {
           return 'Text is required';
@@ -74,36 +99,39 @@ class _PostViewState extends State<PostView> {
 
   Widget _buildPostForm() {
     return Form(
-        key: _formKey,
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: <Widget>[
-            _buildTextField(),
-            RaisedButton(
-              child: Text('Submit'),
-              onPressed: () {
-                if (!_formKey.currentState.validate()) {
-                  return;
-                }
-                _formKey.currentState.save();
-                Firestore.instance
-                    .collection('posts')
-                    .document(widget.post.ID)
-                    .collection('replies')
-                    .add({
-                  'text': text,
-                  'date': Timestamp.now(),
-                  'PostId': widget.post.ID,
-                });
-                getReplies();
-              },
-            ),
-          ],
-        ));
+      key: _formKey,
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: <Widget>[
+          _buildTextField(),
+          RaisedButton(
+            color: Colors.white,
+            child: Text('Submit'),
+            onPressed: () {
+              if (!_formKey.currentState.validate()) {
+                return;
+              }
+              _formKey.currentState.save();
+              Firestore.instance
+                  .collection('posts')
+                  .document(widget.post.ID)
+                  .collection('replies')
+                  .add({
+                'text': text,
+                'date': Timestamp.now(),
+                'PostId': widget.post.ID,
+              });
+              getReplies();
+            },
+          ),
+        ],
+      ),
+    );
   }
 
   @override
   void initState() {
+    getScore();
     getReplies();
     getDeviceInfo();
     super.initState();
@@ -113,76 +141,35 @@ class _PostViewState extends State<PostView> {
   Widget build(BuildContext context) {
     // Use the Todo to create the UI.
     return Scaffold(
-        appBar: AppBar(
-          title: Text(widget.post.title),
-        ),
-        body: Column(children: <Widget>[
-          Card(
-              child: ListTile(
-            title: Text(widget.post.title),
-            subtitle: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: <Widget>[
-                IconButton(
-                  icon: Icon(Icons.keyboard_arrow_down),
-                  iconSize: 30,
-                  onPressed: () {
-                    Firestore.instance
-                      .collection('votes')
-                      .where('deviceId', isEqualTo: androidInfo.androidId)
-                      .where('postId', isEqualTo: widget.post.ID)
-                      .getDocuments()
-                      .then((QuerySnapshot snapshot) {
-                    if (snapshot.documents.length > 0) {
-                      for (var doc in snapshot.documents) {
-                        Firestore.instance
-                            .collection('votes')
-                            .document(doc.documentID)
-                            .delete();
-                      }
-                    }
-                    Firestore.instance.collection('votes').add({
-                      'postId': widget.post.ID,
-                      'deviceId': androidInfo.androidId,
-                      'type': 'downvote'
-                    });
-                  });
-                  },
-                ),
-                Text(widget.post.votes.toString()),
-                IconButton(
-                  icon: Icon(Icons.keyboard_arrow_up),
-                  iconSize: 30,
-                  onPressed: () {
-                    Firestore.instance
-                      .collection('votes')
-                      .where('deviceId', isEqualTo: androidInfo.androidId)
-                      .where('postId', isEqualTo: widget.post.ID)
-                      .getDocuments()
-                      .then((QuerySnapshot snapshot) {
-                    if (snapshot.documents.length > 0) {
-                      for (var doc in snapshot.documents) {
-                        Firestore.instance
-                            .collection('votes')
-                            .document(doc.documentID)
-                            .delete();
-                      }
-                    }
-                    Firestore.instance.collection('votes').add({
-                      'postId': widget.post.ID,
-                      'deviceId': androidInfo.androidId,
-                      'type': 'upvote'
-                    });
-                  });
-                  },
-                ),
-                Text(numReplies.toString() + ' Replies'),
-                Text(widget.post.timestamp),
-              ],
+      resizeToAvoidBottomPadding: false,
+      appBar: AppBar(
+        iconTheme: IconThemeData(color: Colors.black),
+        backgroundColor: Colors.white,
+        title: Text(widget.post.title, style: TextStyle(color: Colors.black),),
+      ),
+      body: Container(
+        color: Colors.blueAccent,
+        child: Column(
+          children: <Widget>[
+            Container(
+              color: Colors.white,
+              child: CustomListItem(
+                title: widget.post.title,
+                user: widget.post.user,
+                timestamp: widget.post.timestamp,
+                score: widget.post.votes,
+                docID: widget.post.ID,
+                body: widget.post.body,
+                replies: numReplies,
+              ),
             ),
-          )),
-          Expanded(child: _buildReplyView()),
-          _buildPostForm(),
-        ]));
+            Expanded(
+              child: _buildReplyView(),
+            ),
+            _buildPostForm(),
+          ],
+        ),
+      ),
+    );
   }
 }
