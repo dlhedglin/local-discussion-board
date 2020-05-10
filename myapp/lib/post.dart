@@ -6,5 +6,6 @@ class Post {
   final String timestamp;
   final String user;
   final int numReplies;
-  Post(this.title, this.body, this.ID, this.votes, this.timestamp, this.user, this.numReplies);
+  final String image;
+  Post(this.title, this.body, this.ID, this.votes, this.timestamp, this.user, this.numReplies, this.image);
 }

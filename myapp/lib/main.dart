@@ -42,8 +42,8 @@ class _MyAppState extends State<MyApp> {
   }
 
   Future<Null> refreshList() async {
-    await getLocation();
-    await getPosts();
+    getLocation();
+    getPosts();
     setState(() {});
     return null;
   }
@@ -55,7 +55,6 @@ class _MyAppState extends State<MyApp> {
     placemark = await Geolocator()
         .placemarkFromCoordinates(_position.latitude, _position.longitude);
   }
-
 
   Widget _buildUserView() {
     if (userDocs == null) {
@@ -91,6 +90,7 @@ class _MyAppState extends State<MyApp> {
                     timeago.format(timePosted),
                     user,
                     numReplies[post.documentID],
+                    userDocs[index].data['image'],
                   ),
                 ),
               ),
@@ -107,7 +107,7 @@ class _MyAppState extends State<MyApp> {
               score: totalVotes,
               docID: userDocs[index].documentID,
               replies: numReplies[post.documentID],
-              
+              image: userDocs[index].data['image'],
             ),
           ),
         );

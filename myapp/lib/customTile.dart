@@ -10,6 +10,7 @@ class CustomListItem extends StatelessWidget {
     this.docID,
     this.body,
     this.replies,
+    this.image,
   });
 
   final String title;
@@ -19,6 +20,7 @@ class CustomListItem extends StatelessWidget {
   final String docID;
   final String body;
   final int replies;
+  final String image;
 
   @override
   Widget build(BuildContext context) {
@@ -37,6 +39,7 @@ class CustomListItem extends StatelessWidget {
               docID: docID,
               body: body,
               replies : replies,
+              image: image,
             ),
           ),
         ],
@@ -54,7 +57,8 @@ class _VideoDescription extends StatefulWidget {
     this.score,
     this.docID,
     this.body,
-    this.replies
+    this.replies,
+    this.image,
   }) : super(key: key);
 
   String title;
@@ -64,6 +68,7 @@ class _VideoDescription extends StatefulWidget {
   String docID;
   String body;
   int replies;
+  String image;
 
   @override
   __VideoDescriptionState createState() => __VideoDescriptionState();
@@ -106,6 +111,7 @@ class __VideoDescriptionState extends State<_VideoDescription> {
               fontSize: 14.0,
             ),
           ),
+          widget.image != null ? Center(child: Image.network(widget.image, width: 100)) : Container(),
           Text(
             widget.body == null ? "" : widget.body,
             style: const TextStyle(

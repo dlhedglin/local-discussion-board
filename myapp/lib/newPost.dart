@@ -1,10 +1,10 @@
-import 'package:curved_navigation_bar/curved_navigation_bar.dart';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:geolocator/geolocator.dart';
-import 'package:myapp/home.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 import 'alias.dart';
+import 'package:image_picker/image_picker.dart';
+import 'dart:io';
+import 'package:firebase_storage/firebase_storage.dart';
 
 class NewPost extends StatefulWidget {
   GlobalKey gKey;
@@ -18,10 +18,23 @@ class _NewPostState extends State<NewPost> {
   String body;
   String title;
   String name;
+  String url;
   List<DocumentSnapshot> userDocs;
   final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
   GeoPoint _position;
   final Alias alias = Alias();
+  File _image;
+  String fileName;
+  StorageReference storageRef;
+  StorageUploadTask uploadTask;
+
+  Future getImage() async {
+    var image = await ImagePicker.pickImage(source: ImageSource.camera);
+    setState(() {
+      _image = image;
+      print(_image);
+    });
+  }
 
   void getLocation() async {
     Position pos = await Geolocator()
@@ -35,8 +48,6 @@ class _NewPostState extends State<NewPost> {
 
   @override
   initState() {
-    getLocation();
-    getAlias();
     super.initState();
   }
 
@@ -93,32 +104,55 @@ class _NewPostState extends State<NewPost> {
   Widget _buildPostForm() {
     return Form(
       key: _formKey,
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-        children: <Widget>[
-          _buildTitleField(),
-          _buildBodyField(),
-          RaisedButton(
-            color: Colors.white,
-            child: Text('Create'),
-            onPressed: () {
-              if (!_formKey.currentState.validate()) {
-                return;
-              }
-              _formKey.currentState.save();
-              Firestore.instance.collection('posts').add(
-                {
-                  'title': title,
-                  'body': body,
-                  'alias': name,
-                  'location': _position,
-                  'date': Timestamp.now(),
-                  'score': 0,
-                },
-              );
-            },
-          ),
-        ],
+      child: SingleChildScrollView(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+          children: <Widget>[
+            _buildTitleField(),
+            _buildBodyField(),
+            Center(
+              child: _image == null
+                  ? Text('No image selected.')
+                  : Image.file(_image),
+            ),
+            FloatingActionButton(
+              onPressed: getImage,
+              tooltip: 'Pick Image',
+              child: Icon(Icons.add_a_photo),
+            ),
+            RaisedButton(
+              color: Colors.white,
+              child: Text('Create'),
+              onPressed: () async {
+                getLocation();
+                getAlias();
+                if (!_formKey.currentState.validate()) {
+                  return;
+                }
+                _formKey.currentState.save();
+                if(_image != null){
+                  storageRef =
+                      FirebaseStorage.instance.ref().child(_image.toString());
+                  uploadTask = storageRef.putFile(_image);
+                  final StorageTaskSnapshot downloadUrl =
+                      (await uploadTask.onComplete);
+                  url = (await downloadUrl.ref.getDownloadURL());
+                }
+                Firestore.instance.collection('posts').add(
+                  {
+                    'title': title,
+                    'body': body,
+                    'alias': name,
+                    'location': _position,
+                    'date': Timestamp.now(),
+                    'score': 0,
+                    'image': url,
+                  },
+                );
+              },
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -127,9 +161,12 @@ class _NewPostState extends State<NewPost> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-         iconTheme: IconThemeData(color: Colors.black),
+        iconTheme: IconThemeData(color: Colors.black),
         backgroundColor: Colors.white,
-        title: Text("Create a post", style: TextStyle(color: Colors.black),),
+        title: Text(
+          "Create a post",
+          style: TextStyle(color: Colors.black),
+        ),
         centerTitle: true,
       ),
       body: Container(

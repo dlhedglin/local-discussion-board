@@ -19,8 +19,8 @@ class _HomeState extends State<Home> {
 
   final List<Widget> _children = [
     MyApp(), // view posts
-    SignIn(),
     NewPost(),
+    SignIn(),
   ];
   
   void changeTab(int index) {
@@ -44,8 +44,8 @@ class _HomeState extends State<Home> {
         index: _page, // this will be set when a new tab is tapped
         items: [
           Icon(Icons.home, size: 30),
-          Icon(Icons.alternate_email, size: 30),
           Icon(Icons.add, size: 30),
+          Icon(Icons.alternate_email, size: 30),
           // Icon(Icons.refresh, size: 30),
         ],
       ),

@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:myapp/auth.dart';
 import 'alias.dart';
 
 class SignIn extends StatefulWidget {
@@ -8,7 +7,6 @@ class SignIn extends StatefulWidget {
 }
 
 class _SignInState extends State<SignIn> {
-  final AuthService _auth = AuthService();
   final Alias alias = Alias();
   String curName;
   String name;

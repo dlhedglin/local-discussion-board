@@ -161,6 +161,7 @@ class _PostViewState extends State<PostView> {
                 docID: widget.post.ID,
                 body: widget.post.body,
                 replies: numReplies,
+                image: widget.post.image,
               ),
             ),
             Expanded(
